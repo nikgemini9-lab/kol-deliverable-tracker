@@ -12,13 +12,13 @@ import { Radio } from 'lucide-react'
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,

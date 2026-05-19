@@ -13,7 +13,6 @@ import { slugify } from '@/lib/utils'
 export default function SignupPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
@@ -29,6 +28,7 @@ export default function SignupPage() {
       return
     }
     setLoading(true)
+    const supabase = createClient()
 
     const { data, error } = await supabase.auth.signUp({
       email: form.email,
