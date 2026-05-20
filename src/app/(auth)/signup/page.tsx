@@ -35,6 +35,7 @@ export default function SignupPage() {
       password: form.password,
       options: {
         data: { full_name: form.fullName },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
       },
     })
 
