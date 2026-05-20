@@ -45,6 +45,13 @@ export default function SignupPage() {
       return
     }
 
+    // Ensure profile row exists before inserting workspace (foreign key dependency)
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      email: data.user.email ?? null,
+      full_name: form.fullName || null,
+    }, { onConflict: 'id' })
+
     // Create workspace
     if (form.workspaceName) {
       const slug = slugify(form.workspaceName) + '-' + Math.random().toString(36).slice(2, 6)

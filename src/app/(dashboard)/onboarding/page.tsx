@@ -30,6 +30,13 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
+    // Ensure profile exists (trigger may not have fired on first signup attempt)
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      email: user.email ?? null,
+      full_name: user.user_metadata?.full_name ?? null,
+    }, { onConflict: 'id' })
+
     // Check if workspace already exists
     const { data: existing } = await supabase
       .from('workspace_members')
@@ -39,13 +46,20 @@ export default function OnboardingPage() {
 
     let workspaceId = existing?.workspace_id
 
-    if (!workspaceId && form.workspaceName) {
-      const slug = slugify(form.workspaceName) + '-' + Math.random().toString(36).slice(2, 6)
-      const { data: ws } = await supabase.from('workspaces').insert({
-        name: form.workspaceName,
+    if (!workspaceId) {
+      const name = form.workspaceName || `${user.email?.split('@')[0]}'s Workspace`
+      const slug = slugify(name) + '-' + Math.random().toString(36).slice(2, 6)
+      const { data: ws, error: wsError } = await supabase.from('workspaces').insert({
+        name,
         slug,
         owner_id: user.id,
       }).select().single()
+
+      if (wsError) {
+        setLoading(false)
+        toast({ title: 'Failed to create workspace', description: wsError.message, variant: 'error' })
+        return
+      }
 
       if (ws) {
         workspaceId = ws.id
