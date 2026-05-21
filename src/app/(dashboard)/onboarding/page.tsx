@@ -1,20 +1,16 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
-import { slugify } from '@/lib/utils'
-import { Building2, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1)
 
   const [form, setForm] = useState({
     workspaceName: '',
@@ -27,63 +23,23 @@ export default function OnboardingPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    const res = await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
 
-    // Ensure profile exists (trigger may not have fired on first signup attempt)
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      email: user.email ?? null,
-      full_name: user.user_metadata?.full_name ?? null,
-    }, { onConflict: 'id' })
+    const data = await res.json()
 
-    // Check if workspace already exists
-    const { data: existing } = await supabase
-      .from('workspace_members')
-      .select('workspace_id')
-      .eq('user_id', user.id)
-      .single()
-
-    let workspaceId = existing?.workspace_id
-
-    if (!workspaceId) {
-      const name = form.workspaceName || `${user.email?.split('@')[0]}'s Workspace`
-      const slug = slugify(name) + '-' + Math.random().toString(36).slice(2, 6)
-      const { data: ws, error: wsError } = await supabase.from('workspaces').insert({
-        name,
-        slug,
-        owner_id: user.id,
-      }).select().single()
-
-      if (wsError) {
-        setLoading(false)
-        toast({ title: 'Failed to create workspace', description: wsError.message, variant: 'error' })
-        return
-      }
-
-      if (ws) {
-        workspaceId = ws.id
-        await supabase.from('workspace_members').insert({
-          workspace_id: ws.id,
-          user_id: user.id,
-          role: 'owner',
-        })
-      }
-    }
-
-    if (workspaceId && form.companyName) {
-      const keywords = form.keywords.split(',').map(k => k.trim()).filter(Boolean)
-      await supabase.from('companies').insert({
-        workspace_id: workspaceId,
-        name: form.companyName,
-        x_handle: form.companyHandle.replace('@', '') || null,
-        keywords,
-      })
+    if (!res.ok) {
+      setLoading(false)
+      toast({ title: 'Setup failed', description: data.error, variant: 'error' })
+      return
     }
 
     setLoading(false)
     toast({ title: 'Setup complete! Welcome aboard 🎉', variant: 'success' })
-    router.push('/kols')
+    router.push('/dashboard')
   }
 
   return (
