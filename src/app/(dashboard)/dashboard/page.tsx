@@ -1,3 +1,4 @@
+import { getWorkspaceForUser } from '@/lib/supabase/workspace'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { StatsCards } from '@/components/dashboard/stats-cards'
@@ -12,11 +13,7 @@ export default async function DashboardPage() {
   if (!session) redirect('/login')
 
   // Get workspace
-  const { data: memberRow } = await supabase
-    .from('workspace_members')
-    .select('workspace_id, workspaces(id, name)')
-    .eq('user_id', session.user.id)
-    .single()
+  const memberRow = await getWorkspaceForUser(session.user.id)
 
   if (!memberRow) {
     redirect('/onboarding')

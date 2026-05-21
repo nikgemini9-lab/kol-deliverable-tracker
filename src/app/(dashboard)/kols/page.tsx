@@ -10,18 +10,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, UserPlus } from 'lucide-react'
 import { getCompletionPct, getPayoutRecommendation, getKolStatus, formatCurrency, PAYOUT_COLORS, STATUS_COLORS } from '@/lib/utils'
 import { redirect } from 'next/navigation'
+import { getWorkspaceForUser } from '@/lib/supabase/workspace'
 
 export default async function KolsPage() {
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) redirect('/login')
 
-  const { data: memberRow } = await supabase
-    .from('workspace_members')
-    .select('workspace_id')
-    .eq('user_id', session.user.id)
-    .single()
-
+  const memberRow = await getWorkspaceForUser(session.user.id)
   if (!memberRow) redirect('/onboarding')
 
   const workspaceId = memberRow.workspace_id

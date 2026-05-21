@@ -1,3 +1,4 @@
+import { getWorkspaceForUser } from '@/lib/supabase/workspace'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { KolForm } from '@/components/kols/kol-form'
@@ -8,11 +9,7 @@ export default async function NewKolPage() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) redirect('/login')
 
-  const { data: memberRow } = await supabase
-    .from('workspace_members')
-    .select('workspace_id')
-    .eq('user_id', session.user.id)
-    .single()
+  const memberRow = await getWorkspaceForUser(session.user.id)
 
   if (!memberRow) redirect('/onboarding')
 
